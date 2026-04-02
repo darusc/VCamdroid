@@ -1,4 +1,5 @@
 #include "application.h"
+#include "crashhandler.h"
 
 #include "gui/imgadjdlg.h"
 #include "gui/streamconfigdlg.h"
@@ -21,6 +22,8 @@ Application::Application()
 
 bool Application::OnInit()
 {
+	CrashHandler::Install();
+
 	if (!wxApp::OnInit())
 		return false;
 
@@ -162,36 +165,42 @@ void Application::BindEventListeners()
 
 void Application::OnDeviceConnected(DeviceDescriptor& descriptor) const
 {
-	mainWindow->GetTaskbarIcon()->ShowBalloon("New stream available", "Streaming device " + descriptor.name() + " available!", 10, wxICON_INFORMATION);
-	rtspManager->AddDescriptor(descriptor);
-	UpdateAvailableDevices();
+	mainWindow->GetEventHandler()->CallAfter([this, descriptor]() mutable {
+		mainWindow->GetTaskbarIcon()->ShowBalloon("New stream available", "Streaming device " + descriptor.name() + " available!", 10, wxICON_INFORMATION);
+		rtspManager->AddDescriptor(descriptor);
+		UpdateAvailableDevices();
+	});
 }
 
 void Application::OnDeviceDisconnected(DeviceDescriptor& descriptor) const
 {
-	mainWindow->GetTaskbarIcon()->ShowBalloon("Stream ended", "Streaming device " + descriptor.name() + " disconnected!", 10, wxICON_INFORMATION);
-	
-	// Check if the device that just disconnected was the active streaming device
-	// If it was reset the canvas to blank
-	int streamingDeviceId = rtspManager->GetStreamingDevice();
-	if (streamingDeviceId >= 0)
-	{
-		const auto& streamingDescriptor = rtspManager->GetDescriptors()[streamingDeviceId];
-		if (streamingDescriptor == descriptor)
-			mainWindow->GetCanvas()->Clear();
-	}
+	mainWindow->GetEventHandler()->CallAfter([this, descriptor]() mutable {
+		mainWindow->GetTaskbarIcon()->ShowBalloon("Stream ended", "Streaming device " + descriptor.name() + " disconnected!", 10, wxICON_INFORMATION);
 
-	// Remove from manager
-	rtspManager->RemoveDescriptor(descriptor);
+		// Check if the device that just disconnected was the active streaming device
+		// If it was reset the canvas to blank
+		int streamingDeviceId = rtspManager->GetStreamingDevice();
+		if (streamingDeviceId >= 0)
+		{
+			const auto& streamingDescriptor = rtspManager->GetDescriptors()[streamingDeviceId];
+			if (streamingDescriptor == descriptor)
+				mainWindow->GetCanvas()->Clear();
+		}
 
-	// Update UI list
-	UpdateAvailableDevices();
+		// Remove from manager
+		rtspManager->RemoveDescriptor(descriptor);
+
+		// Update UI list
+		UpdateAvailableDevices();
+	});
 }
 
 void Application::OnDeviceErrorReported(DeviceDescriptor& descriptor, const Connection::ErrorReport& error) const
 {
-	auto icon = error.severity == Connection::ErrorReport::SEVERITY_WARNING ? wxICON_WARNING : wxICON_ERROR;
-	mainWindow->GetTaskbarIcon()->ShowBalloon(descriptor.name() + " " + error.error, error.description, 1000, icon);
+	mainWindow->GetEventHandler()->CallAfter([this, descriptor, error]() {
+		auto icon = error.severity == Connection::ErrorReport::SEVERITY_WARNING ? wxICON_WARNING : wxICON_ERROR;
+		mainWindow->GetTaskbarIcon()->ShowBalloon(descriptor.name() + " " + error.error, error.description, 1000, icon);
+	});
 }
 
 void Application::UpdateAvailableDevices() const

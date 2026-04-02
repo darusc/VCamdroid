@@ -134,11 +134,17 @@ void Server::TCPDoAccept()
 			// We need to read this here because the connection listener
 			// needs all the data sent by the client (trough GetConnectedDevicesInfo)
 			// otherwise the connection would need to be passed to the connection
-			std::array<char, 512> buffer;
-			size_t size = socket.read_some(asio::buffer(buffer, 512));
-			
+			std::vector<uint8_t> buffer;
+			std::array<uint8_t, 1024> chunk;
+			asio::error_code readEc;
+			size_t n;
+			do {
+				n = socket.read_some(asio::buffer(chunk), readEc);
+				if (n > 0) buffer.insert(buffer.end(), chunk.begin(), chunk.begin() + n);
+			} while (n == chunk.size() && !readEc);
+
 			// auto ipaddress = socket.remote_endpoint().address().to_string();
-			auto descriptor = Serializer::DeserializeDeviceDescriptor((const uint8_t*)buffer.data(), size);
+			auto descriptor = Serializer::DeserializeDeviceDescriptor(buffer.data(), buffer.size());
 
 			auto conn = std::make_shared<Connection>(
 				std::move(socket),

@@ -1,8 +1,0 @@
-[SERVER] Started
-[ADB:6969] Started 
-[SERVER] Device connected.127.0.0.1:51306
-[SERVER] Set UDP stream device: 127.0.0.1:51306
-[CONNECTION@127.0.0.1:51306] Closed with error code: asio.misc:2
-[SERVER] Closing...
-[SERVER] Closed.
-[ADB:6969] Failed to stop 
