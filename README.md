@@ -146,7 +146,11 @@ We actively welcome contributions! Whether you're fixing a bug, optimizing perfo
 #### 📱 Android App
 1.  **Prerequisites:** Install the latest **Android Studio**.
 2.  **Import:** Open the `android/` directory as a project.
-3.  **Build:** Let Gradle sync and download dependencies.
+3.  **Build:** Let Gradle sync and download dependencies, then build the release APK:
+    ```cmd
+    cd android
+    gradlew.bat clean assembleRelease
+    ```
     * *Core Dependency:* [RootEncoder](https://github.com/pedroSG94/RootEncoder) (handles RTSP/RTP packets).
 4.  **Run:** Connect a physical Android device (emulators often lack necessary encoder hardware) and run the `app` module.
 
@@ -175,6 +179,13 @@ We actively welcome contributions! Whether you're fixing a bug, optimizing perfo
         regsvr32 softcam.dll
         ```
 
+#### 📦 Building the distributable package
+Run `package.bat` from the repository root after building the Windows client into `dist/`.
+The packaging script runs Gradle's `:app:copyApk` task, which builds the Android
+release from the current source tree before copying it into `dist/apk/`. It removes
+the previous destination APK first and stops if the build does not recreate it,
+preventing an old APK from being shipped with a newer desktop client.
+
 ### 📬 Submitting a Pull Request
 1.  Fork the project.
 2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
@@ -199,6 +210,27 @@ If the Android app cannot connect to the Windows client:
     * Connect via USB (for the test command).
     * Open a terminal in the VCamdroid folder and run: `adb shell ping -c 4 <PC_IP_ADDRESS>`
     * If you see "100% packet loss" or "unreachable," your PC's firewall or router settings (AP Isolation) are blocking the connection.
+
+### Phone connects but the device and video do not appear
+The TCP connection on port `6969` is only the first pairing step. The Android app
+must next send its `DeviceDescriptor`; only then can the Windows client list the
+device. Select the phone in the Windows source list to request streaming and open
+the RTSP video on port `8554`.
+
+If `vcamdroid.log` contains `Device connected` but the device never appears:
+1.  Make sure the desktop client and Android APK came from the same release package.
+2.  When building from source, run `package.bat` instead of reusing an APK from an
+    older `dist/` directory.
+3.  Reinstall the packaged APK with `scripts\install_apk.bat`. If ADB reports
+    `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, uninstall the existing
+    `com.darusc.vcamdroid` package first; this removes its local app data.
+4.  Pair again, select the listed phone as the source, and verify that streaming
+    starts and live video appears in the desktop client.
+
+The QR dialog remaining visible by itself does not prove that pairing failed; use
+the device list, video preview, and logs as the success criteria. See
+[Device registration troubleshooting](docs/troubleshooting-device-registration.md)
+for the complete diagnostic flow.
 
 ### USB Connection not working
 If the app does not detect your phone:

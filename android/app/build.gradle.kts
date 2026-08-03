@@ -41,8 +41,9 @@ android {
 }
 
 tasks.register<Copy>("copyApk") {
-    from("release/")
-    into("../../dist/apk")
+    dependsOn("assembleRelease")
+    from(layout.buildDirectory.file("outputs/apk/release/app-release.apk"))
+    into(rootProject.file("../dist/apk"))
 }
 
 dependencies {
