@@ -27,6 +27,18 @@ if not exist "%GRADLE_WRAPPER%" (
     goto :Error
 )
 
+if not exist "%SOURCE_ADB%\adb.exe" (
+    echo [ERROR] ADB executable not found at: %SOURCE_ADB%\adb.exe
+    goto :Error
+)
+
+for %%f in (%SCRIPTS_TO_COPY%) do (
+    if not exist "%%f" (
+        echo [ERROR] Required script not found: %%f
+        goto :Error
+    )
+)
+
 if exist "%ANDROID_APK%" (
     echo [INFO] Removing previous Android APK...
     del /f /q "%ANDROID_APK%"
@@ -52,6 +64,10 @@ if not exist "%ANDROID_APK%" (
 if exist "%OUTPUT_DIR%" (
     echo [INFO] Cleaning old output directory...
     rmdir /s /q "%OUTPUT_DIR%"
+    if exist "%OUTPUT_DIR%" (
+        echo [ERROR] Could not clean output directory: %OUTPUT_DIR%
+        goto :Error
+    )
 )
 
 :: 4. Create new directory structure
@@ -59,6 +75,14 @@ echo [INFO] Creating directory structure...
 mkdir "%OUTPUT_DIR%"
 mkdir "%OUTPUT_DIR%\scripts"
 mkdir "%OUTPUT_DIR%\adb"
+if not exist "%OUTPUT_DIR%\scripts" (
+    echo [ERROR] Could not create scripts directory.
+    goto :Error
+)
+if not exist "%OUTPUT_DIR%\adb" (
+    echo [ERROR] Could not create ADB directory.
+    goto :Error
+)
 
 :: 5. Copy App Executables (contents of /dist -> /vcamdroid)
 if exist "%SOURCE_DIST%" (
@@ -83,12 +107,25 @@ if exist "%SOURCE_ADB%" (
 :: 7. Copy Batch Scripts (root -> /vcamdroid/scripts/)
 echo [INFO] Copying batch scripts...
 for %%f in (%SCRIPTS_TO_COPY%) do (
-    if exist "%%f" (
-        copy /y "%%f" "%OUTPUT_DIR%\scripts\%%f" >nul
-        echo    - Copied %%f
-    ) else (
-        echo [WARNING] Script not found: %%f
+    copy /y "%%f" "%OUTPUT_DIR%\scripts\%%f" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy script: %%f
+        goto :Error
     )
+    echo    - Copied %%f
+)
+
+if not exist "%OUTPUT_DIR%\VCamdroid.exe" (
+    echo [ERROR] Packaged Windows executable is missing.
+    goto :Error
+)
+if not exist "%OUTPUT_DIR%\apk\app-release.apk" (
+    echo [ERROR] Packaged Android APK is missing.
+    goto :Error
+)
+if not exist "%OUTPUT_DIR%\adb\adb.exe" (
+    echo [ERROR] Packaged ADB executable is missing.
+    goto :Error
 )
 
 echo.

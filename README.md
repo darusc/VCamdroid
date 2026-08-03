@@ -214,7 +214,8 @@ If the Android app cannot connect to the Windows client:
 ### Phone connects but the device and video do not appear
 The TCP connection on port `6969` is only the first pairing step. The Android app
 must next send its `DeviceDescriptor`; only then can the Windows client list the
-device, request streaming, and open the RTSP video on port `8554`.
+device. Select the phone in the Windows source list to request streaming and open
+the RTSP video on port `8554`.
 
 If `vcamdroid.log` contains `Device connected` but the device never appears:
 1.  Make sure the desktop client and Android APK came from the same release package.
@@ -223,8 +224,8 @@ If `vcamdroid.log` contains `Device connected` but the device never appears:
 3.  Reinstall the packaged APK with `scripts\install_apk.bat`. If ADB reports
     `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, uninstall the existing
     `com.darusc.vcamdroid` package first; this removes its local app data.
-4.  Pair again and verify all three gates: the device is listed, streaming starts,
-    and live video appears in the desktop client.
+4.  Pair again, select the listed phone as the source, and verify that streaming
+    starts and live video appears in the desktop client.
 
 The QR dialog remaining visible by itself does not prove that pairing failed; use
 the device list, video preview, and logs as the success criteria. See

@@ -5,14 +5,15 @@ reaches the Windows client, but no device or video appears in the desktop app.
 
 ## Pairing sequence
 
-A successful Wi-Fi pairing has four separate gates:
+A successful Wi-Fi pairing has five separate gates:
 
 1. The QR code gives the Android client the Windows host and control port (`6969`).
 2. Android opens the TCP control connection.
 3. Android sends a `DeviceDescriptor` containing the device name, RTSP URL,
    camera resolutions, and supported filters.
-4. Windows registers the device, sends the stream options, and opens the RTSP
-   stream (normally on port `8554`).
+4. Windows registers the descriptor and adds the phone to the source list.
+5. The user selects the phone in that source list; Windows then sends the stream
+   options and opens the RTSP stream (normally on port `8554`).
 
 A TCP connection alone is not enough. If gate 2 succeeds but gate 3 fails, the
 server can log `Device connected` while the device list and video remain empty.
@@ -115,7 +116,8 @@ After installing the packaged APK and pairing again, verify all of the following
 
 - the phone reaches the control server on port `6969`;
 - the phone appears in the Windows device list;
-- Windows requests streaming after device registration;
+- the phone is selected in the Windows source list;
+- Windows requests streaming after that selection;
 - the RTSP stream is reachable (normally port `8554`);
 - live camera video appears in the desktop preview.
 
