@@ -69,21 +69,21 @@ package. `python3-qrcode` is required by the RPM and recommended by the DEB;
 Install from a local build:
 
 ```bash
-sudo dnf install ./linux/dist/vcamdroid-0.1.0-4.fc44.noarch.rpm
+sudo dnf install ./linux/dist/vcamdroid-0.1.0-5.fc44.noarch.rpm
 sudo apt install ./linux/dist/vcamdroid_0.1.0_all.deb
 ```
 
 Or from the committed artifacts:
 
 ```bash
-sudo dnf install ./releases/vcamdroid-0.1.0-4.fc44.noarch.rpm
+sudo dnf install ./releases/vcamdroid-0.1.0-5.fc44.noarch.rpm
 sudo apt install ./releases/vcamdroid_0.1.0_all.deb
 ```
 
 Upgrade or remove the RPM with:
 
 ```bash
-sudo dnf upgrade ./releases/vcamdroid-0.1.0-4.fc44.noarch.rpm
+sudo dnf upgrade ./releases/vcamdroid-0.1.0-5.fc44.noarch.rpm
 sudo dnf remove vcamdroid
 ```
 
@@ -94,3 +94,24 @@ this on install) and log out/in:
 sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor
 sudo update-desktop-database /usr/share/applications
 ```
+
+## Troubleshooting
+
+### GNOME Camera / Snapshot does not list the virtual camera
+
+With `exclusive_caps=1`, `v4l2loopback` only advertises capture capabilities
+while a producer is writing. If WirePlumber started before the stream, it can
+keep the device as output-only and the GNOME camera portal reports that no
+camera is present. With VCamdroid streaming, run:
+
+```bash
+systemctl --user restart wireplumber
+```
+
+Then reopen Camera/Snapshot and select **Virtual Camera (V4L2)**. The GUI's
+**Setup v4l2 → Refresh Camera Detection** button runs the same command.
+
+This is only needed when the device was enumerated before the stream started
+(typically once per boot). If you prefer the device to be visible without this
+step, load `v4l2loopback` with `exclusive_caps=0`; that always advertises
+capture, but some Chromium/WebRTC applications may then ignore the device.

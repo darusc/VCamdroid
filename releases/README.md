@@ -7,7 +7,7 @@ and set it as the window icon of the Linux client.
 | File | Target | Install |
 | --- | --- | --- |
 | `VCamdroid-0.1.0.apk` | Android (debug build, installable with `adb`) | `adb install -r VCamdroid-0.1.0.apk` |
-| `vcamdroid-0.1.0-4.fc44.noarch.rpm` | Fedora / RHEL-family Linux | `sudo dnf install ./vcamdroid-0.1.0-4.fc44.noarch.rpm` |
+| `vcamdroid-0.1.0-5.fc44.noarch.rpm` | Fedora / RHEL-family Linux | `sudo dnf install ./vcamdroid-0.1.0-5.fc44.noarch.rpm` |
 | `vcamdroid_0.1.0_all.deb` | Debian / Ubuntu Linux | `sudo apt install ./vcamdroid_0.1.0_all.deb` |
 
 Run these commands from inside this `releases/` directory.
@@ -19,7 +19,7 @@ Fusion), so installing it will **not** replace your existing `ffmpeg-free`.
 Do not use `--allowerasing`. To upgrade or remove:
 
 ```bash
-sudo dnf upgrade ./vcamdroid-0.1.0-4.fc44.noarch.rpm
+sudo dnf upgrade ./vcamdroid-0.1.0-5.fc44.noarch.rpm
 sudo dnf remove vcamdroid
 ```
 
@@ -43,6 +43,10 @@ Linux packages require `python3` with tkinter (installed automatically) and
 ```bash
 sudo modprobe v4l2loopback devices=1 video_nr=10 card_label="VCamdroid" exclusive_caps=1
 ```
+
+On GNOME, if Camera/Snapshot does not list the device while streaming, run
+`systemctl --user restart wireplumber` and reopen the camera app. This makes
+PipeWire re-enumerate the loopback as a capture source.
 
 See [`linux/README.md`](../linux/README.md) for full details. If the launcher
 icon looks stale, run:

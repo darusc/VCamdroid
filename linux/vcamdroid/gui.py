@@ -37,7 +37,11 @@ from .protocol import (
 from .rtsp_receiver import RtspReceiver
 from .server import ClientSession, ControlServer
 from .ui_dispatch import UiDispatcher
-from .v4l2_manager import find_v4l2loopback_devices, get_modprobe_command
+from .v4l2_manager import (
+    find_v4l2loopback_devices,
+    get_modprobe_command,
+    refresh_pipewire_cameras,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -303,7 +307,12 @@ class VCamdroidApp:
         frame.pack(fill=tk.BOTH, expand=True)
         ttk.Label(
             frame,
-            text="Run this command in a terminal to create a virtual webcam device,\nthen click Refresh:",
+            text=(
+                "Run this command in a terminal to create a virtual webcam device,\n"
+                "then click Refresh.\n\n"
+                "If GNOME Camera/Snapshot still does not list it while streaming,\n"
+                "click Refresh Camera Detection (restarts WirePlumber)."
+            ),
             justify=tk.LEFT,
         ).pack(anchor=tk.W, pady=(0, 8))
         entry = ttk.Entry(frame, width=78)
@@ -315,9 +324,32 @@ class VCamdroidApp:
             self.root.clipboard_clear()
             self.root.clipboard_append(cmd)
 
+        def refresh_camera_detection() -> None:
+            ok, detail = refresh_pipewire_cameras()
+            if ok:
+                messagebox.showinfo(
+                    "VCamdroid Linux Client",
+                    "WirePlumber restarted. Reopen the camera application and "
+                    "select 'Virtual Camera (V4L2)'.",
+                    parent=dlg,
+                )
+            else:
+                messagebox.showwarning(
+                    "VCamdroid Linux Client",
+                    "Could not restart WirePlumber.\n\n"
+                    f"{detail}\n\n"
+                    "Try manually: systemctl --user restart wireplumber",
+                    parent=dlg,
+                )
+
         btn_row = ttk.Frame(frame)
         btn_row.pack(fill=tk.X)
         ttk.Button(btn_row, text="Copy Command", command=copy_cmd).pack(side=tk.LEFT)
+        ttk.Button(
+            btn_row,
+            text="Refresh Camera Detection",
+            command=refresh_camera_detection,
+        ).pack(side=tk.LEFT, padx=(8, 0))
         ttk.Button(btn_row, text="Close", command=dlg.destroy).pack(side=tk.RIGHT)
 
     def _show_qr_dialog(self) -> None:

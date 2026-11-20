@@ -67,11 +67,11 @@ VCamdroid allows you to seamlessly use your mobile device’s camera as a virtua
 
 #### Linux (Fedora)
 ```bash
-sudo dnf install ./releases/vcamdroid-0.1.0-4.fc44.noarch.rpm
+sudo dnf install ./releases/vcamdroid-0.1.0-5.fc44.noarch.rpm
 ```
 The RPM accepts either `ffmpeg-free` (Fedora's default) or `ffmpeg` (RPM Fusion), so it will keep your existing `ffmpeg-free`. To upgrade or remove it later:
 ```bash
-sudo dnf upgrade ./releases/vcamdroid-0.1.0-4.fc44.noarch.rpm
+sudo dnf upgrade ./releases/vcamdroid-0.1.0-5.fc44.noarch.rpm
 sudo dnf remove vcamdroid
 ```
 
