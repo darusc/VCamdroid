@@ -10,6 +10,7 @@ import tempfile
 import threading
 import tkinter as tk
 from collections.abc import Callable
+from pathlib import Path
 from tkinter import messagebox, ttk
 
 from PIL import Image
@@ -52,6 +53,30 @@ def _pil_to_photo(img: Image.Image) -> tk.PhotoImage:
     return tk.PhotoImage(data=buf.getvalue())
 
 
+def _load_window_icon() -> tk.PhotoImage | None:
+    """Load the application icon for the Tk window from the installed theme or sources."""
+    module_dir = Path(__file__).resolve().parent
+    candidates = (
+        Path("/usr/share/icons/hicolor/192x192/apps/vcamdroid.png"),
+        module_dir.parent / "icons" / "hicolor" / "192x192" / "apps" / "vcamdroid.png",
+        module_dir.parents[1] / "imgs" / "icon2.png",
+    )
+    for candidate in candidates:
+        if not candidate.is_file():
+            continue
+        try:
+            icon = tk.PhotoImage(file=str(candidate))
+        except Exception:
+            try:
+                icon = _pil_to_photo(Image.open(candidate))
+            except Exception:
+                logger.debug("Could not load window icon from %s", candidate, exc_info=True)
+                continue
+        logger.debug("Loaded window icon from %s", candidate)
+        return icon
+    return None
+
+
 def _generate_qr_image(payload: str, size: int = 220) -> Image.Image | None:
     """Generate a PIL QR code image using qrcode or qrencode if available."""
     try:
@@ -84,6 +109,10 @@ class VCamdroidApp:
     def __init__(self, root: tk.Tk, port: int = 6969, default_v4l2: str | None = None) -> None:
         self.root = root
         self.root.title("VCamdroid Linux Client")
+        # Tk does not pick up the desktop entry's icon by itself.
+        self._window_icon = _load_window_icon()
+        if self._window_icon is not None:
+            self.root.iconphoto(True, self._window_icon)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.port = port
