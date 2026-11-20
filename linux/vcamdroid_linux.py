@@ -5,16 +5,98 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
+import platform
+import shutil
 import signal
 import sys
 import threading
 import time
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from vcamdroid.adb_manager import AdbManager
 from vcamdroid.protocol import StreamOptions, build_resolution_packet
 from vcamdroid.rtsp_receiver import RtspReceiver
 from vcamdroid.server import ClientSession, ControlServer
 from vcamdroid.v4l2_manager import find_v4l2loopback_devices, get_modprobe_command
+
+
+LOG_DIR_NAME = "vcamdroid"
+LOG_FILE_NAME = "vcamdroid.log"
+
+
+def log_file_path() -> Path:
+    """Return the per-user log file path, honouring XDG_STATE_HOME."""
+    state_home = os.environ.get("XDG_STATE_HOME")
+    base = Path(state_home).expanduser() if state_home else Path.home() / ".local" / "state"
+    return base / LOG_DIR_NAME / LOG_FILE_NAME
+
+
+def setup_logging(verbose: bool = False) -> Path | None:
+    """Log to stderr and to a rotating per-user file.
+
+    Returns the log file path, or None when the file could not be created.
+    """
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
+    path: Path | None = None
+
+    try:
+        path = log_file_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        handlers.append(
+            RotatingFileHandler(
+                path, maxBytes=1_000_000, backupCount=3, encoding="utf-8"
+            )
+        )
+    except (OSError, RuntimeError):
+        path = None
+
+    for handler in handlers:
+        handler.setFormatter(formatter)
+    logging.basicConfig(
+        level=logging.DEBUG if verbose else logging.INFO,
+        handlers=handlers,
+        force=True,
+    )
+    return path
+
+
+def install_exception_hooks(log_path: Path | None) -> None:
+    """Log uncaught exceptions from the main thread and from worker threads."""
+    logger = logging.getLogger("vcamdroid")
+
+    def handle(exc_type, exc_value, exc_tb) -> None:
+        if issubclass(exc_type, KeyboardInterrupt):
+            return
+        logger.critical("Unhandled exception", exc_info=(exc_type, exc_value, exc_tb))
+        if log_path is not None:
+            print(f"VCamdroid crashed. Log saved to {log_path}", file=sys.stderr)
+
+    def handle_thread(args: threading.ExceptHookArgs) -> None:
+        handle(args.exc_type, args.exc_value, args.exc_traceback)
+
+    sys.excepthook = handle
+    threading.excepthook = handle_thread
+
+
+def log_runtime_environment() -> None:
+    """Log details that help diagnose platform-specific startup failures."""
+    logger = logging.getLogger("vcamdroid")
+    logger.info(
+        "Starting VCamdroid Linux client (Python %s, %s)",
+        platform.python_version(),
+        platform.platform(),
+    )
+    logger.info(
+        "Session: type=%s display=%s wayland=%s",
+        os.environ.get("XDG_SESSION_TYPE", "unknown"),
+        os.environ.get("DISPLAY", "unset"),
+        os.environ.get("WAYLAND_DISPLAY", "unset"),
+    )
+    for tool in ("ffmpeg", "adb", "systemctl", "modprobe"):
+        logger.info("Tool %s: %s", tool, shutil.which(tool) or "not found")
 
 
 def parse_resolution(value: str) -> tuple[int, int]:
@@ -132,10 +214,11 @@ def main() -> int:
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
 
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-    )
+    log_path = setup_logging(verbose=args.verbose)
+    install_exception_hooks(log_path)
+    log_runtime_environment()
+    if log_path is not None:
+        logging.getLogger("vcamdroid").info("Log file: %s", log_path)
 
     if args.headless:
         return run_headless(args.port, args.device, args.resolution, args.fps)
@@ -144,24 +227,54 @@ def main() -> int:
         import tkinter as tk
         from vcamdroid.gui import VCamdroidApp
     except ModuleNotFoundError as exc:
-        if "_tkinter" in str(exc) or "tkinter" in str(exc):
+        missing = exc.name or ""
+        if missing in ("tkinter", "_tkinter"):
             logging.error(
                 "Tkinter is not available in this Python interpreter (%s).\n"
-                "Run with the system Python: /usr/bin/python3 %s\n"
-                "Or run in CLI mode:         python3 %s --headless",
+                "Install it with: sudo apt install python3-tk     # Debian/Ubuntu\n"
+                "                 sudo dnf install python3-tkinter  # Fedora\n"
+                "Or run in CLI mode: python3 %s --headless",
                 sys.executable,
                 sys.argv[0],
-                sys.argv[0],
+            )
+            return 1
+        if missing == "PIL" or missing.startswith("PIL."):
+            logging.error(
+                "Pillow is not available in this Python interpreter (%s).\n"
+                "Install it with: sudo apt install python3-pil       # Debian/Ubuntu\n"
+                "                 sudo dnf install python3-pillow    # Fedora",
+                sys.executable,
             )
             return 1
         raise
 
     # Match the desktop entry's StartupWMClass instead of Tk's default "Tk".
-    root = tk.Tk(className="vcamdroid")
+    try:
+        root = tk.Tk(className="vcamdroid")
+    except tk.TclError as exc:
+        logging.error(
+            "Could not open a graphical window (%s).\n"
+            "Run this from a desktop session, or use --headless for CLI mode.",
+            exc,
+        )
+        return 1
     VCamdroidApp(root, port=args.port, default_v4l2=args.device)
     root.mainloop()
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except SystemExit:
+        raise
+    except KeyboardInterrupt:
+        sys.exit(130)
+    except Exception:
+        logging.getLogger("vcamdroid").critical("Fatal error", exc_info=True)
+        try:
+            hint = f"\nLog: {log_file_path()}"
+        except RuntimeError:
+            hint = ""
+        print(f"VCamdroid failed to start.{hint}", file=sys.stderr)
+        sys.exit(1)

@@ -1,6 +1,6 @@
 Name:           vcamdroid
 Version:        0.1.0
-Release:        6%{?dist}
+Release:        7%{?dist}
 Summary:        Use an Android phone as a virtual webcam on Linux
 
 License:        MIT
@@ -57,6 +57,9 @@ gtk-update-icon-cache -qf %{_datadir}/icons/hicolor 2>/dev/null || :
 update-desktop-database -q %{_datadir}/applications 2>/dev/null || :
 
 %changelog
+* Fri Nov 20 2026 VCamdroid <https://github.com/darusc/VCamdroid> - 0.1.0-7
+- Write a per-user log file and report startup failures clearly.
+
 * Fri Nov 20 2026 VCamdroid <https://github.com/darusc/VCamdroid> - 0.1.0-6
 - Set the Tk WM_CLASS and StartupWMClass so GNOME shows the app name and icon.
 

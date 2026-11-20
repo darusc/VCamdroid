@@ -69,21 +69,21 @@ package. `python3-qrcode` is required by the RPM and recommended by the DEB;
 Install from a local build:
 
 ```bash
-sudo dnf install ./linux/dist/vcamdroid-0.1.0-6.fc44.noarch.rpm
+sudo dnf install ./linux/dist/vcamdroid-0.1.0-7.fc44.noarch.rpm
 sudo apt install ./linux/dist/vcamdroid_0.1.0_all.deb
 ```
 
 Or from the committed artifacts:
 
 ```bash
-sudo dnf install ./releases/vcamdroid-0.1.0-6.fc44.noarch.rpm
+sudo dnf install ./releases/vcamdroid-0.1.0-7.fc44.noarch.rpm
 sudo apt install ./releases/vcamdroid_0.1.0_all.deb
 ```
 
 Upgrade or remove the RPM with:
 
 ```bash
-sudo dnf upgrade ./releases/vcamdroid-0.1.0-6.fc44.noarch.rpm
+sudo dnf upgrade ./releases/vcamdroid-0.1.0-7.fc44.noarch.rpm
 sudo dnf remove vcamdroid
 ```
 
@@ -96,6 +96,28 @@ sudo update-desktop-database /usr/share/applications
 ```
 
 ## Troubleshooting
+
+### The app fails to start
+
+Run it from a terminal to see the error:
+
+```bash
+vcamdroid
+```
+
+The client also writes a rotating log to
+`~/.local/state/vcamdroid/vcamdroid.log` (or
+`$XDG_STATE_HOME/vcamdroid/vcamdroid.log` when that variable is set). Include
+that file when reporting a startup problem. When launched from the desktop, the
+same output is available in the user journal:
+
+```bash
+journalctl --user -b | grep -i vcamdroid | tail -50
+```
+
+Use `vcamdroid -v` for debug-level output. Common causes: missing `python3-tk`
+or `python3-pil`, `adb` not installed (Wi-Fi mode still works), and no graphical
+session (`--headless` works over SSH).
 
 ### GNOME Camera / Snapshot does not list the virtual camera
 
