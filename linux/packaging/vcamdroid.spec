@@ -1,6 +1,6 @@
 Name:           vcamdroid
 Version:        0.1.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Use an Android phone as a virtual webcam on Linux
 
 License:        MIT
@@ -13,7 +13,8 @@ Requires:       python3 >= 3.10
 Requires:       python3-tkinter
 Requires:       python3-pillow
 Requires:       python3-qrcode
-Requires:       ffmpeg
+# Fedora ships ffmpeg-free; RPM Fusion's ffmpeg conflicts with it. Accept either.
+Requires:       (ffmpeg-free or ffmpeg)
 Suggests:       adb
 Suggests:       v4l2loopback
 

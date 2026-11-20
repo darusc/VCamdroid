@@ -1,11 +1,11 @@
 # VCamdroid 0.1.0 release artifacts
 
-Built from commit `7e95156` on 2026-11-20.
+Built from commit `db80977` on 2026-11-20.
 
 | File | Target | Install |
 | --- | --- | --- |
 | `VCamdroid-0.1.0.apk` | Android (debug build, installable via `adb install`) | `adb install -r VCamdroid-0.1.0.apk` |
-| `vcamdroid-0.1.0-1.fc44.noarch.rpm` | Fedora / RHEL-family Linux | `sudo dnf install ./vcamdroid-0.1.0-1.fc44.noarch.rpm` |
+| `vcamdroid-0.1.0-2.fc44.noarch.rpm` | Fedora / RHEL-family Linux | `sudo dnf install ./vcamdroid-0.1.0-2.fc44.noarch.rpm` |
 | `vcamdroid_0.1.0_all.deb` | Debian / Ubuntu Linux | `sudo apt install ./vcamdroid_0.1.0_all.deb` |
 
 Verify the downloads with:
