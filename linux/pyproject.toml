@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vcamdroid-linux"
+version = "0.1.0"
+description = "Linux client for VCamdroid (RTSP -> v4l2loopback)"
+requires-python = ">=3.10"
+dependencies = [
+    "Pillow>=10.0.0",
+    "qrcode>=7.4.0",
+]
+
+[tool.setuptools]
+packages = ["vcamdroid"]
