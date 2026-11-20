@@ -6,7 +6,7 @@
   VCamdroid
 </h1>
 
-<p align="center">Turn your Android phone into a high-performance Windows webcam.</p>
+<p align="center">Turn your Android phone into a virtual webcam on Windows or Linux.</p>
 
 <p align="center">
   <a href="https://github.com/darusc/VCamdroid/blob/main/LICENSE">
@@ -52,21 +52,52 @@ VCamdroid allows you to seamlessly use your mobile device’s camera as a virtua
 ## Installation Guide
 
 ### Prerequisites
-* **PC:** Windows 10 or 11.
+* **PC:** Windows 10 or 11, or a Linux distribution (Fedora, Debian/Ubuntu, ...).
 * **Phone:** Android 7.0 (Nougat) or higher.
+* **Linux only:** the `v4l2loopback` kernel module (see [`linux/README.md`](linux/README.md)).
 
-### Step 1: Install on Windows
+### Step 1: Install the desktop client
+
+#### Windows
 1.  Download the latest binaries from the [**Releases Page**](https://github.com/darusc/VCamdroid/releases).
 2.  Extract the ZIP archive.
 3.  Right-click `install.bat` and select **Run as Administrator**.
     * *Note: This script registers `softcam.dll` with the system, making the virtual webcam device visible to other applications.*
-4. Check both **Private** and **Public** profiles in the Windows Firewall popup and allow the app
+4. Check both **Private** and **Public** profiles in the Windows Firewall popup and allow the app.
+
+#### Linux (Fedora)
+```bash
+sudo dnf install ./releases/vcamdroid-0.1.0-4.fc44.noarch.rpm
+```
+The RPM accepts either `ffmpeg-free` (Fedora's default) or `ffmpeg` (RPM Fusion), so it will keep your existing `ffmpeg-free`. To upgrade or remove it later:
+```bash
+sudo dnf upgrade ./releases/vcamdroid-0.1.0-4.fc44.noarch.rpm
+sudo dnf remove vcamdroid
+```
+
+#### Linux (Debian / Ubuntu)
+```bash
+sudo apt install ./releases/vcamdroid_0.1.0_all.deb
+```
+Debian/Ubuntu use the regular `ffmpeg` package; there is no `ffmpeg-free` there and no conflict.
+
+For both Linux packages, load the virtual camera module before starting the client:
+```bash
+sudo modprobe v4l2loopback devices=1 video_nr=10 card_label="VCamdroid" exclusive_caps=1
+```
+
+See [`linux/README.md`](linux/README.md) for the full client documentation.
 
 ### Step 2: Install on Android
-You can transfer the APK file to your phone and install it manually, or follow the steps below for an automatic install:
+You can transfer `releases/VCamdroid-0.1.0.apk` to your phone and install it manually, or install it over USB with ADB (from the repository root):
+```bash
+adb install -r releases/VCamdroid-0.1.0.apk
+```
+On Windows you can also run `install_apk.bat` from the extracted release archive.
+
 1.  Connect your phone to your PC via USB.
 2.  Ensure **USB Debugging** is enabled (see instructions below).
-3.  Run `install_apk.bat` on your PC to automatically install the app on your phone.
+3.  Install the APK using one of the methods above.
 
 
 ### 💡 How to Enable USB Debugging
@@ -109,7 +140,7 @@ VCamdroid utilizes the industry-standard **RTSP (Real-Time Streaming Protocol)**
 
 2.  **Stream Handling Libraries:**
     * **Server Side (Android):** Powered by the [RootEncoder](https://github.com/pedroSG94/RootEncoder) library. It handles the complex tasks of interfacing with the Android encoder, packetizing the video data into RTP packets, and managing the RTSP server session.
-    * **Client Side (Windows):** Utilizes [FFmpeg](https://ffmpeg.org/), the leading multimedia framework, to robustly demux the RTSP stream and decode the incoming video packets.
+    * **Client Side (Windows/Linux):** Utilizes [FFmpeg](https://ffmpeg.org/), the leading multimedia framework, to robustly demux the RTSP stream and decode the incoming video packets.
 
 <p align="center"><img src="imgs/network.png" width="60%"></p> 
 
