@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import threading
 import tkinter as tk
+from collections.abc import Callable
 from tkinter import messagebox, ttk
 
 from PIL import Image
@@ -33,6 +34,7 @@ from .protocol import (
 )
 from .rtsp_receiver import RtspReceiver
 from .server import ClientSession, ControlServer
+from .ui_dispatch import UiDispatcher
 from .v4l2_manager import find_v4l2loopback_devices, get_modprobe_command
 
 logger = logging.getLogger(__name__)
@@ -107,6 +109,10 @@ class VCamdroidApp:
         self._frame_lock = threading.Lock()
         self._photo_ref: tk.PhotoImage | None = None
         self._default_v4l2 = default_v4l2
+
+        # Tk may only be touched from the main thread. Background callbacks put
+        # closures here; the main-thread poll loop below drains them.
+        self._ui = UiDispatcher()
 
         self._build_ui()
         self._refresh_v4l2_devices()
@@ -311,25 +317,37 @@ class VCamdroidApp:
         ttk.Label(frame, text=payload, font=("TkDefaultFont", 12, "bold")).pack(pady=(0, 8))
         ttk.Button(frame, text="Close", command=dlg.destroy).pack()
 
-    # --- Background callbacks marshaled to Tkinter main thread ---
+    # --- Background callbacks marshaled to the Tkinter main thread ---
+
+    def _enqueue_ui(self, task: Callable[[], None]) -> None:
+        """Hand work to the main thread; never touch Tk from a worker thread."""
+        self._ui.post(task)
 
     def _on_device_connected_bg(self, session: ClientSession) -> None:
-        self.root.after(0, lambda: self._handle_device_connected(session))
+        self._enqueue_ui(lambda: self._handle_device_connected(session))
 
     def _on_device_disconnected_bg(self, session: ClientSession) -> None:
-        self.root.after(0, lambda: self._handle_device_disconnected(session))
+        self._enqueue_ui(lambda: self._handle_device_disconnected(session))
 
     def _on_error_reported_bg(self, session: ClientSession, report: ErrorReport) -> None:
-        self.root.after(0, lambda: messagebox.showwarning(f"{session.descriptor.name}: {report.error}", report.description))
+        self._enqueue_ui(
+            lambda: messagebox.showwarning(
+                f"{session.descriptor.name}: {report.error}", report.description
+            )
+        )
 
     def _on_status_bg(self, msg: str) -> None:
-        self.root.after(0, lambda: self.status_var.set(msg))
+        self._enqueue_ui(lambda: self.status_var.set(msg))
 
     def _on_preview_frame_bg(self, rgb_bytes: bytes, width: int, height: int) -> None:
         with self._frame_lock:
             self._latest_frame = (rgb_bytes, width, height)
 
+    def _drain_ui_queue(self) -> None:
+        self._ui.drain(on_error=lambda exc: logger.error("UI callback failed: %s", exc))
+
     def _schedule_preview_poll(self) -> None:
+        self._drain_ui_queue()
         frame = None
         with self._frame_lock:
             if self._latest_frame is not None:
