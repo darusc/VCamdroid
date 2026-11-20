@@ -44,3 +44,27 @@ Or install the package first to import `vcamdroid` from anywhere:
 python3 -m pip install -e .
 python3 -m unittest discover -s linux/tests -v   # from the repository root
 ```
+
+## Native packages (RPM / DEB)
+
+From the repository root:
+
+```bash
+/usr/bin/python3 linux/packaging/build_packages.py          # both packages
+/usr/bin/python3 linux/packaging/build_packages.py --rpm    # RPM only
+/usr/bin/python3 linux/packaging/build_packages.py --deb    # DEB only
+```
+
+Requires `rpmbuild` for the RPM and `ar`/`tar` for the DEB. Artifacts are written
+to `linux/dist/` (git-ignored).
+
+The packages install the sources under `/usr/lib/vcamdroid` and a launcher at
+`/usr/bin/vcamdroid` that uses the system Python (needed for tkinter). `ffmpeg`
+is a hard dependency; `adb`, `v4l2loopback` and `qrcode` are recommended.
+
+Install examples:
+
+```bash
+sudo dnf install linux/dist/vcamdroid-*.rpm
+sudo apt install ./linux/dist/vcamdroid_*.deb
+```
