@@ -15,6 +15,7 @@ from tkinter import messagebox, ttk
 from PIL import Image
 
 from .adb_manager import AdbManager
+from .device_state import device_labels, resolve_selection
 from .protocol import (
     ErrorReport,
     FilterCategory,
@@ -370,10 +371,9 @@ class VCamdroidApp:
             self.adb.sync_rtsp_port(session.descriptor.rtsp_url)
         except ValueError:
             pass
+        first_device = self.active_client_id is None
         self._update_device_dropdown()
-        if self.active_client_id is None:
-            self.active_client_id = session.client_id
-            self._select_device_in_ui(session)
+        if first_device and self.active_client_id == session.client_id:
             # Give Android SurfaceView 400ms to finish surfaceCreated() before ACTIVATION
             self.root.after(400, self._start_stream)
 
@@ -382,7 +382,6 @@ class VCamdroidApp:
         self.activated_clients.discard(session.client_id)
         if self.active_client_id == session.client_id:
             self._stop_stream()
-            self.active_client_id = None
         self._update_device_dropdown()
         if not self.sessions:
             self.stream_btn.configure(state=tk.DISABLED)
@@ -390,13 +389,13 @@ class VCamdroidApp:
             self.status_var.set(f"Device disconnected | Listening on {ip}:{port}")
 
     def _update_device_dropdown(self) -> None:
-        items = [f"[{cid}] {s.descriptor.name}" for cid, s in self.sessions.items()]
-        self.device_combo["values"] = items
-        if items and self.active_client_id in self.sessions:
-            s = self.sessions[self.active_client_id]
-            self.device_var.set(f"[{s.client_id}] {s.descriptor.name}")
-        elif not items:
-            self.device_var.set("")
+        previous_id = self.active_client_id
+        self.device_combo["values"] = device_labels(self.sessions)
+        active_id, selected = resolve_selection(previous_id, self.sessions)
+        self.active_client_id = active_id
+        self.device_var.set(selected)
+        if active_id is not None and active_id != previous_id:
+            self._select_device_in_ui(self.sessions[active_id])
 
     def _on_device_selected(self) -> None:
         val = self.device_var.get()
