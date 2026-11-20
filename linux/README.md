@@ -69,21 +69,21 @@ package. `python3-qrcode` is required by the RPM and recommended by the DEB;
 Install from a local build:
 
 ```bash
-sudo dnf install ./linux/dist/vcamdroid-0.1.0-5.fc44.noarch.rpm
+sudo dnf install ./linux/dist/vcamdroid-0.1.0-6.fc44.noarch.rpm
 sudo apt install ./linux/dist/vcamdroid_0.1.0_all.deb
 ```
 
 Or from the committed artifacts:
 
 ```bash
-sudo dnf install ./releases/vcamdroid-0.1.0-5.fc44.noarch.rpm
+sudo dnf install ./releases/vcamdroid-0.1.0-6.fc44.noarch.rpm
 sudo apt install ./releases/vcamdroid_0.1.0_all.deb
 ```
 
 Upgrade or remove the RPM with:
 
 ```bash
-sudo dnf upgrade ./releases/vcamdroid-0.1.0-5.fc44.noarch.rpm
+sudo dnf upgrade ./releases/vcamdroid-0.1.0-6.fc44.noarch.rpm
 sudo dnf remove vcamdroid
 ```
 

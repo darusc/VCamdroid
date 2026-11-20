@@ -35,6 +35,7 @@ Exec=vcamdroid
 Icon=vcamdroid
 Terminal=false
 Categories=Utility;Video;
+StartupWMClass=Vcamdroid
 """
 
 DEB_UPDATE_CACHE = """#!/bin/sh

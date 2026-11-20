@@ -156,7 +156,8 @@ def main() -> int:
             return 1
         raise
 
-    root = tk.Tk()
+    # Match the desktop entry's StartupWMClass instead of Tk's default "Tk".
+    root = tk.Tk(className="vcamdroid")
     VCamdroidApp(root, port=args.port, default_v4l2=args.device)
     root.mainloop()
     return 0
