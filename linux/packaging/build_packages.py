@@ -21,6 +21,7 @@ LINUX_DIR = Path(__file__).resolve().parents[1]
 REPO_DIR = LINUX_DIR.parent
 DIST_DIR = LINUX_DIR / "dist"
 PACKAGE_DIR = LINUX_DIR / "vcamdroid"
+ICONS_DIR = LINUX_DIR / "packaging" / "icons"
 
 LAUNCHER = """#!/bin/sh
 exec /usr/bin/python3 /usr/lib/vcamdroid/vcamdroid_linux.py "$@"
@@ -31,8 +32,15 @@ Type=Application
 Name=VCamdroid
 Comment=Use an Android phone as a virtual webcam
 Exec=vcamdroid
+Icon=vcamdroid
 Terminal=false
 Categories=Utility;Video;
+"""
+
+DEB_UPDATE_CACHE = """#!/bin/sh
+set -e
+gtk-update-icon-cache -qf /usr/share/icons/hicolor 2>/dev/null || true
+update-desktop-database -q /usr/share/applications 2>/dev/null || true
 """
 
 DEB_CONTROL = """Package: vcamdroid
@@ -71,6 +79,7 @@ def copy_sources(target: Path) -> None:
     launcher.write_text(LAUNCHER)
     launcher.chmod(0o755)
     (target / "vcamdroid.desktop").write_text(DESKTOP)
+    shutil.copytree(ICONS_DIR, target / "icons", dirs_exist_ok=True)
 
 
 def make_tarball(source_dir: Path, tarball: Path, arcname: str) -> None:
@@ -131,6 +140,8 @@ def _tar_info(path: Path, arcname: str) -> tarfile.TarInfo:
 def build_deb(work: Path, version: str) -> Path:
     root = work / "deb" / "root"
     copy_sources(root / "usr" / "lib" / "vcamdroid")
+    # Icons belong in the hicolor theme only, not next to the sources.
+    shutil.rmtree(root / "usr" / "lib" / "vcamdroid" / "icons")
     (root / "usr" / "bin").mkdir(parents=True, exist_ok=True)
     shutil.copy2(root / "usr" / "lib" / "vcamdroid" / "vcamdroid-launcher", root / "usr" / "bin" / "vcamdroid")
     (root / "usr" / "share" / "applications").mkdir(parents=True, exist_ok=True)
@@ -139,14 +150,28 @@ def build_deb(work: Path, version: str) -> Path:
         root / "usr" / "share" / "applications" / "vcamdroid.desktop",
     )
 
+    shutil.copytree(ICONS_DIR, root / "usr" / "share" / "icons", dirs_exist_ok=True)
+
     control_dir = work / "deb" / "control"
     control_dir.mkdir(parents=True, exist_ok=True)
     (control_dir / "control").write_text(DEB_CONTROL.format(version=version))
+    for name in ("postinst", "postrm"):
+        script = control_dir / name
+        script.write_text(DEB_UPDATE_CACHE)
+        script.chmod(0o755)
 
     control_tar = work / "deb" / "control.tar.gz"
     with tarfile.open(control_tar, "w:gz") as tf:
-        control_file = control_dir / "control"
-        tf.add(control_file, arcname="./control", recursive=False)
+        for name in ("control", "postinst", "postrm"):
+            path = control_dir / name
+            info = tarfile.TarInfo(f"./{name}")
+            info.size = path.stat().st_size
+            info.mode = path.stat().st_mode & 0o7777
+            info.mtime = 0
+            info.uid = info.gid = 0
+            info.uname = info.gname = "root"
+            with path.open("rb") as fh:
+                tf.addfile(info, fh)
 
     data_tar = work / "deb" / "data.tar.gz"
     with tarfile.open(data_tar, "w:gz") as tf:
